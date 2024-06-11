@@ -11,6 +11,15 @@ class PersonalModel extends pdo_conexion
         $qry->execute();
         return $qry->fetchAll();
     }
+
+    public function get_asistencias_personal($mes, $anio){
+    $qry = $this->con->prepare("CALL GenerarReporteAsistencia(:mes, :anio)");
+    $qry->bindParam(':mes', $mes, PDO::PARAM_INT);
+    $qry->bindParam(':anio', $anio, PDO::PARAM_INT);
+    $qry->execute();
+    return $qry->fetchAll();
+    }
+
     public function get_asi_reg($dni){
         //obtener registro de asistencia por dni
         $qry = $this->con->prepare("SELECT * FROM `registro_asistencia_administrativos` WHERE dni_doce=:dni_doce ORDER BY fecha_registro,hora_registro DESC;");

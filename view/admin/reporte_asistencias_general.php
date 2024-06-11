@@ -1,10 +1,22 @@
 <?php
-include "./models/personal.model.php";
-include "./controllers/personal.controller.php";
-$personal = new PersonalController();
-$hoy = date('Y-m-d'); // Obtener la fecha actual en formato Y-m-d
 $currentMonth = date('n'); // Obtener el mes actual en formato numérico
 $currentYear = date('Y'); // Obtener el año actual en formato numérico
+$selectedMonth = isset($_GET['sel_mes_ini']) ? $_GET['sel_mes_ini'] : $currentMonth;
+$selectedYear = isset($_GET['sel_anio']) ? $_GET['sel_anio'] : $currentYear;
+
+// Verificar si los parámetros fueron recibidos y asignar a variables
+if (isset($_GET['sel_mes_ini']) && isset($_GET['sel_anio'])) {
+    $selectedMonth = $_GET['sel_mes_ini'];
+    $selectedYear = $_GET['sel_anio'];
+    // Puedes agregar lógica adicional aquí si necesitas hacer algo con los parámetros recibidos
+    echo "Mes y año recibidos: $selectedMonth - $selectedYear";
+} else {
+    // Aquí puedes manejar el caso donde no se recibieron parámetros
+  include "./models/personal.model.php";
+  include "./controllers/personal.controller.php";
+}
+
+$personal = new PersonalController();
 ?>
 
 <!-- Content Header (Page header) -->
@@ -41,7 +53,7 @@ $currentYear = date('Y'); // Obtener el año actual en formato numérico
                       $nombre_mes = date('F', mktime(0, 0, 0, $i, 1));
                       $num_dias_mes = date('t', mktime(0, 0, 0, $i, 1));
                     ?>
-                    <option value="<?php echo $i; ?>" <?php echo ($i == $currentMonth) ? 'selected' : ''; ?>>
+                    <option value="<?php echo $i; ?>" <?php echo ($i == $selectedMonth) ? 'selected' : ''; ?>>
                       <?php echo $nombre_mes . " - " . $num_dias_mes; ?>
                     </option>
                   <?php endfor; ?>
@@ -51,7 +63,7 @@ $currentYear = date('Y'); // Obtener el año actual en formato numérico
                 <!-- Selector de año -->
                 <select class="form-control" id="sel_anio" name="sel_anio">
                     <?php for ($i = $currentYear; $i >= 2023; $i--): ?>
-                      <option value="<?php echo $i; ?>" <?php echo ($i == $currentYear) ? 'selected' : ''; ?>>
+                      <option value="<?php echo $i; ?>" <?php echo ($i == $selectedYear) ? 'selected' : ''; ?>>
                         <?php echo $i; ?>
                       </option>
                     <?php endfor; ?>
@@ -59,7 +71,7 @@ $currentYear = date('Y'); // Obtener el año actual en formato numérico
               </div>
               <div class="col-md-3">
                 <!-- Botón para listar -->
-                <button class="btn btn-success" id="btn_listar"><i class="fa fa-list"></i> Listar</button>
+                <button class="btn btn-success" id="btn_listar" onclick="listarAsistencias()"><i class="fa fa-list"></i> Listar</button>
               </div>
             </div>
 
@@ -71,30 +83,32 @@ $currentYear = date('Y'); // Obtener el año actual en formato numérico
                     <th class="col">Nombres</th>
                     <th class="col">Apellidos</th>
                     <th class="col">Dni</th>
-                    <!-- Los encabezados para los días serán generados dinámicamente por JavaScript -->
+                    <?php for ($i = 1; $i <= 31; $i++): ?>
+                      <th class="col"><?php echo $i; ?></th>
+                    <?php endfor; ?>
                   </tr>
                 </thead>
                 <tbody>
-                  <?php if ($personal->listar_personal()): ?>
-                    <?php foreach ($personal->listar_personal() as $per): ?>
-                      <tr id="tr_percas_<?php echo $per['id_personal']; ?>">
-                        <td><?php echo $per['id_personal']; ?></td>
-                        <td class="text-left">
-                          <?php echo $per["nombres"]; ?>
-                        </td>
-                        <td class="text-left">
-                          <?php echo $per["apaterno"] . ' ' . $per["amaterno"]; ?>
-                        </td>
+                  <?php
+                  $asistencias = $personal->listar_asistencias_personal($selectedMonth, $selectedYear);
+                  if ($asistencias):
+                    foreach ($asistencias as $index => $per):
+                  ?>
+                      <tr id="tr_percas_<?php echo $per['dni_pa']; ?>">
+                        <td><?php echo $index + 1; ?></td>
+                        <td class="text-left"><?php echo $per["nombres"]; ?></td>
+                        <td class="text-left"><?php echo $per["apaterno"] . ' ' . $per["amaterno"]; ?></td>
                         <td><?php echo $per["dni_pa"]; ?></td>
-                        <!-- Las celdas para los días se llenarán dinámicamente -->
                         <?php for ($i = 1; $i <= 31; $i++): ?>
-                          <td class="day-cell"></td>
+                          <td><?php echo $per["dia_$i"]; ?></td>
                         <?php endfor; ?>
                       </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
+                  <?php
+                    endforeach;
+                  else:
+                  ?>
                     <tr>
-                      <td colspan="7"><span class="text-center">No se encontraron datos</span></td>
+                      <td colspan="35"><span class="text-center">No se encontraron datos</span></td>
                     </tr>
                   <?php endif; ?>
                 </tbody>
@@ -108,68 +122,13 @@ $currentYear = date('Y'); // Obtener el año actual en formato numérico
 </section>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    function updateTableHeaders() {
-      var selectedMonth = document.getElementById("sel_mes_ini").value;
-      var selectedYear = document.getElementById("sel_anio").value;
-      var daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+function listarAsistencias() {
+    var mes = document.getElementById('sel_mes_ini').value;
+    var anio = document.getElementById('sel_anio').value;
+    window.location.href = 'view/admin/reporte_asistencias_general.php?sel_mes_ini=' + mes + '&sel_anio=' + anio;
+}
 
-      var headerRow = document.querySelector("#asistencia_general thead tr");
-      headerRow.innerHTML = "<th>#</th><th class='col'>Nombres</th><th class='col'>Apellidos</th><th class='col'>Dni</th>";
-
-      //Si agrego la variable 31 l reemplazamos por daysInMonth se sacara los dias dinamicamente pero se pierden los estilos de los datatables
-      for (var i = 1; i <= 31; i++) {
-        headerRow.innerHTML += "<th>" + i + "</th>";
-      }
-    }
-
-    function updateTableBody() {
-      
-      var selectedMonth = document.getElementById("sel_mes_ini").value;
-      var selectedYear = document.getElementById("sel_anio").value;
-      var daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-
-      var rows = document.querySelectorAll("#asistencia_general tbody tr");
-      rows.forEach(function(row) {
-        var cells = row.querySelectorAll("td");
-        for (var i = 4; i < cells.length; i++) {
-          cells[i].style.display = i <= daysInMonth + 3 ? '' : 'SDM';
-          cells[i].textContent = i <= daysInMonth + 3 ? i - 3 : 'SDM';
-        }
-      });
-    }
-
-    function reinitializeDataTable() {
-      if ($.fn.DataTable.isDataTable('#asistencia_general')) {
-        $('#asistencia_general').DataTable().destroy();
-      }
-
-      $('#asistencia_general').DataTable({
-        "paging": true,
-        "searching": true,
-        "ordering": true,
-        "info": true,
-        "columnDefs": [
-          { "orderable": true, "targets": [0, 1, 2, 3] },
-          { "orderable": false, "targets": "_all" },
-        ],
-        "dom": 'Bfrtip',
-        "buttons": [
-          'copy', 'csv', 'excel', 'pdf', 'print', 'colvis'
-        ]
-      });
-    }
-    updateAndReinitialize();
-    function updateAndReinitialize() {
-      updateTableHeaders();
-      updateTableBody();
-      reinitializeDataTable();
-    }
-
-    //document.getElementById("sel_mes_ini").addEventListener("change", updateAndReinitialize);
-    //document.getElementById("sel_anio").addEventListener("change", updateAndReinitialize);
-    document.getElementById("btn_listar").addEventListener("click", updateAndReinitialize);
-
-    
-  });
+$(document).ready(function() {
+    $('#asistencia_general').DataTable();
+});
 </script>

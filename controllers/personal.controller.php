@@ -7,6 +7,9 @@ class PersonalController{
     public function listar_personal(){
         return $this->personalmodel->get_personal();
     }
+    public function listar_asistencias_personal($mes, $anio){
+        return $this->personalmodel->get_asistencias_personal($mes, $anio);
+    }
     public function buscar_info_personal($dni){
         return $this->personalmodel->buscar_datos($dni);
     }
