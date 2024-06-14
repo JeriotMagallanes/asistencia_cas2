@@ -1,9 +1,15 @@
 <?php
+$s = isset($_GET['busqueda']) ? $_GET['busqueda'] : 'default';
+$mes = isset($_GET['sel_mes_ini']) ? $_GET['sel_mes_ini'] : date('n');
+$anio = isset($_GET['sel_anio']) ? $_GET['sel_anio'] : date('Y');
+
 switch ($s) {
     case 'personal_cas':
         include "./view/admin/personal_cas.php";
         break;
     case 'asistencia_general':
+        $_GET['sel_mes_ini'] = $mes;
+        $_GET['sel_anio'] = $anio;
         include "./view/admin/reporte_asistencias_general.php";
         break;
     case 'asistencia':
@@ -20,7 +26,6 @@ switch ($s) {
         break;
     case 'logout':
         session_destroy();
-        // header("Location: ./index.php");
         echo '<script>location.href = "./index.php";</script>';
         break;
     case 'info':
@@ -35,4 +40,5 @@ switch ($s) {
     default:
         include "./view/admin/panel_control.php";
         break;
-} 
+}
+?>
